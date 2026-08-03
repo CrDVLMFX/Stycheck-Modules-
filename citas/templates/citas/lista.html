@@ -1,0 +1,98 @@
+{% extends 'citas/base.html' %}
+
+{% block title %}Gestión de Citas · Stycheck{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="fw-bold" style="color:#a83458;">Gestión de Citas</h2>
+    <a href="{% url 'crear_cita' %}" class="btn btn-pink">+ Nueva cita</a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto">
+        <select name="estado" class="form-select" onchange="this.form.submit()" aria-label="Filtrar por estado">
+            <option value="">Todos los estados</option>
+            {% for valor, etiqueta in estados %}
+                <option value="{{ valor }}" {% if estado_actual == valor %}selected{% endif %}>{{ etiqueta }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle bg-white shadow-sm">
+        <thead>
+            <tr>
+                <th>Cliente</th>
+                <th>Servicio</th>
+                <th>Estilista</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cita in citas %}
+            <tr>
+                <td>{{ cita.nombre_cliente }}</td>
+                <td>{{ cita.servicio.nombre }}</td>
+                <td>{{ cita.get_estilista_display }}</td>
+                <td>{{ cita.fecha|date:"d/m/Y" }}</td>
+                <td>{{ cita.hora|time:"H:i" }}</td>
+                <td>
+                    {% if cita.estado == 'confirmada' %}
+                        <span class="badge bg-success">Confirmada</span>
+                    {% elif cita.estado == 'cancelada' %}
+                        <span class="badge bg-danger">Cancelada</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">Pendiente</span>
+                    {% endif %}
+                </td>
+                <td class="text-end">
+                    <a href="{% url 'editar_cita' cita.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                    {% if cita.estado != 'cancelada' %}
+                    <form action="{% url 'cancelar_cita' cita.pk %}" method="post" class="d-inline"
+                          onsubmit="return confirm('¿Cancelar la cita de \'{{ cita.nombre_cliente|escapejs }}\'?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-warning">Cancelar</button>
+                    </form>
+                    {% endif %}
+                    <form action="{% url 'eliminar_cita' cita.pk %}" method="post" class="d-inline"
+                          onsubmit="return confirm('¿Eliminar definitivamente la cita de \'{{ cita.nombre_cliente|escapejs }}\'?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                    No hay citas registradas todavía.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if citas.has_other_pages %}
+<nav aria-label="Paginación de citas">
+    <ul class="pagination justify-content-center">
+        {% if citas.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ citas.previous_page_number }}{% if estado_actual %}&estado={{ estado_actual }}{% endif %}">Anterior</a>
+            </li>
+        {% endif %}
+        <li class="page-item disabled">
+            <span class="page-link">Página {{ citas.number }} de {{ citas.paginator.num_pages }}</span>
+        </li>
+        {% if citas.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ citas.next_page_number }}{% if estado_actual %}&estado={{ estado_actual }}{% endif %}">Siguiente</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
